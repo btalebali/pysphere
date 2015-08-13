@@ -18,16 +18,16 @@ from pysphere.ZSI import fault
  
 
 
-vCenterServer = "172.17.117.103";
-username      = "root"       #"administrateur"
-Password      = "prologue"   #"Pr0l0gue2014";
+vCenterServer = "172.17.117.104";
+username      = "administrateur"       #"administrateur"
+Password      = "Pr0l0gue2014"   #"Pr0l0gue2014";
 LOG_FILE      = "/var/log/pysphere.log"
 maxwait       =  120
 
 
 template="Ubuntu12.04-VMware-Tool-64bits";
 resource_pool="RP-Accords";
-vm_name=  "VM-add-disc";
+vm_name=  "VM-test";
 
 
 con = VIServer()
