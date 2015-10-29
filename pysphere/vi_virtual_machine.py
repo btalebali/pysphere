@@ -81,11 +81,11 @@ class VIVirtualMachine(VIManagedEntity):
     #-- POWER METHODS --#
     #-------------------#
     def power_on(self, sync_run=True, host=None):
-        """Attemps to power on the VM. If @sync_run is True (default) waits for
+        """Attemps to power on the clone. If @sync_run is True (default) waits for
         the task to finish, and returns (raises an exception if the task didn't
         succeed). If sync_run is set to False the task is started an a VITask
         instance is returned. You may additionally provided a managed object
-        reference to a host where the VM should be powered on at."""
+        reference to a host where the clone should be powered on at."""
         try:
             request = VI.PowerOnVM_TaskRequestMsg()
             mor_vm = request.new__this(self._mor)
@@ -112,7 +112,7 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
 
     def power_off(self, sync_run=True):
-        """Attemps to power off the VM. If @sync_run is True (default) waits for
+        """Attemps to power off the clone. If @sync_run is True (default) waits for
         the task to finish, and returns (raises an exception if the task didn't
         succeed). If sync_run is set to False the task is started an a VITask
         instance is returned. """
@@ -138,7 +138,7 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
 
     def reset(self, sync_run=True):
-        """Attempts to reset the VM. If @sync_run is True (default) waits for the
+        """Attempts to reset the clone. If @sync_run is True (default) waits for the
         task to finish, and returns (raises an exception if the task didn't
         succeed). If sync_run is set to False the task is started an a VITask
         instance is returned. """
@@ -164,7 +164,7 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
 
     def suspend(self, sync_run=True):
-        """Attempts to suspend the VM (it must be powered on)"""
+        """Attempts to suspend the clone (it must be powered on)"""
         try:
             request = VI.SuspendVM_TaskRequestMsg()
             mor_vm = request.new__this(self._mor)
@@ -226,7 +226,7 @@ class VIVirtualMachine(VIManagedEntity):
         if self._server.get_api_type() != 'VirtualCenter' or basic_status:
             return vi_power_states.get(power_state, VMPowerState.UNKNOWN)
 
-        #on the other hand, get the current task running or queued for this VM
+        #on the other hand, get the current task running or queued for this clone
         oc_task_history = self._server._get_object_properties(
                       self._mor_vm_task_collector,
                       property_names=['latestPage']
@@ -315,39 +315,39 @@ class VIVirtualMachine(VIManagedEntity):
      
      
     def is_powering_off(self):
-        """Returns True if the VM is being powered off"""
+        """Returns True if the clone is being powered off"""
         return self.get_status() == VMPowerState.POWERING_OFF
 
     def is_powered_off(self):
-        """Returns True if the VM is powered off"""
+        """Returns True if the clone is powered off"""
         return self.get_status() == VMPowerState.POWERED_OFF
 
     def is_powering_on(self):
-        """Returns True if the VM is being powered on"""
+        """Returns True if the clone is being powered on"""
         return self.get_status() == VMPowerState.POWERING_ON
 
     def is_powered_on(self):
-        """Returns True if the VM is powered off"""
+        """Returns True if the clone is powered off"""
         return self.get_status() == VMPowerState.POWERED_ON
 
     def is_suspending(self):
-        """Returns True if the VM is being suspended"""
+        """Returns True if the clone is being suspended"""
         return self.get_status() == VMPowerState.SUSPENDING
 
     def is_suspended(self):
-        """Returns True if the VM is suspended"""
+        """Returns True if the clone is suspended"""
         return self.get_status() == VMPowerState.SUSPENDED
 
     def is_resetting(self):
-        """Returns True if the VM is being resetted"""
+        """Returns True if the clone is being resetted"""
         return self.get_status() == VMPowerState.RESETTING
 
     def is_blocked_on_msg(self):
-        """Returns True if the VM is blocked because of a question message"""
+        """Returns True if the clone is blocked because of a question message"""
         return self.get_status() == VMPowerState.BLOCKED_ON_MSG
 
     def is_reverting(self):
-        """Returns True if the VM is being reverted to a snapshot"""
+        """Returns True if the clone is being reverted to a snapshot"""
         return self.get_status() == VMPowerState.REVERTING_TO_SNAPSHOT
 
     #-------------------------#
@@ -409,11 +409,11 @@ class VIVirtualMachine(VIManagedEntity):
         """Clones this Virtual Machine
         @name: name of the new virtual machine
         @sync_run: if True (default) waits for the task to finish, and returns
-            a VIVirtualMachine instance with the new VM (raises an exception if 
+            a VIVirtualMachine instance with the new clone (raises an exception if 
         the task didn't succeed). If sync_run is set to False the task is 
         started and a VITask instance is returned
-        @folder: name of the folder that will contain the new VM, if not set
-            the vm will be added to the folder the original VM belongs to
+        @folder: name of the folder that will contain the new clone, if not set
+            the vm will be added to the folder the original clone belongs to
         @resourcepool: MOR of the resourcepool to be used for the new vm. 
             If not set, it uses the same resourcepool than the original vm.
         @datastore: MOR of the datastore where the virtual machine
@@ -428,7 +428,7 @@ class VIVirtualMachine(VIManagedEntity):
               * if resource pool is specified and the target pool represents a 
                 cluster without DRS enabled, an InvalidArgument exception be
                 thrown.
-        @power_on: If the new VM will be powered on after being created. If
+        @power_on: If the new clone will be powered on after being created. If
             template is set to True, this parameter is ignored.
         @template: Specifies whether or not the new virtual machine should be 
             marked as a template.         
@@ -450,7 +450,7 @@ class VIVirtualMachine(VIManagedEntity):
             is only valid when cloning from a snapshot
         """
         try:
-            #get the folder to create the VM
+            #get the folder to create the clone
             folders = self._server._retrieve_properties_traversal(
                                          property_names=['name', 'childEntity'],
                                          obj_type=MORTypes.Folder)
@@ -470,7 +470,7 @@ class VIVirtualMachine(VIManagedEntity):
                 raise VIException("Couldn't find folder %s" % folder,
                                   FaultTypes.OBJECT_NOT_FOUND)
             elif not folder_mor:
-                raise VIException("Error locating current VM folder",
+                raise VIException("Error locating current clone folder",
                                   FaultTypes.OBJECT_NOT_FOUND)
     
             request = VI.CloneVM_TaskRequestMsg()
@@ -548,7 +548,7 @@ class VIVirtualMachine(VIManagedEntity):
     def migrate(self, sync_run=True, priority='default', resource_pool=None,
                 host=None, state=None):
         """
-        Cold or Hot migrates this VM to a new host or resource pool.
+        Cold or Hot migrates this clone to a new host or resource pool.
         @sync_run: If True (default) waits for the task to finish, and returns 
             (raises an exception if the task didn't succeed). If False the task
             is started an a VITask instance is returned.
@@ -712,7 +712,7 @@ class VIVirtualMachine(VIManagedEntity):
     #----------------------#
 
     def get_snapshots(self):
-        """Returns a list of VISnapshot instances of this VM"""
+        """Returns a list of VISnapshot instances of this clone"""
         self.refresh_snapshot_list()
         return self._snapshot_list[:]
 
@@ -727,11 +727,11 @@ class VIVirtualMachine(VIManagedEntity):
         return None
 
     def revert_to_snapshot(self, sync_run=True, host=None):
-        """Attemps to revert the VM to the current snapshot. If @sync_run is
+        """Attemps to revert the clone to the current snapshot. If @sync_run is
         True (default) waits for the task to finish, and returns (raises an
         exception if the task didn't succeed). If sync_run is set to False the
         task is started an a VITask instance is returned. You may additionally
-        provided a managed object reference to a host where the VM should be
+        provided a managed object reference to a host where the clone should be
         reverted at."""
         try:
             request = VI.RevertToCurrentSnapshot_TaskRequestMsg()
@@ -760,12 +760,12 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
 
     def revert_to_named_snapshot(self, name, sync_run=True, host=None):
-        """Attemps to revert the VM to the snapshot of the given name (the first
+        """Attemps to revert the clone to the snapshot of the given name (the first
         match found). If @sync_run is True (default) waits for the task to
         finish, and returns (raises an exception if the task didn't succeed).
         If sync_run is set to False the task is started an a VITask instance is
         returned. You may additionally provided a managed object reference to a
-        host where the VM should be reverted at."""
+        host where the clone should be reverted at."""
 
         mor = None
         for snap in self._snapshot_list:
@@ -803,13 +803,13 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
 
     def revert_to_path(self, path, index=0, sync_run=True, host=None):
-        """Attemps to revert the VM to the snapshot of the given path and index
+        """Attemps to revert the clone to the snapshot of the given path and index
         (to disambiguate among snapshots with the same path, default 0)
         If @sync_run is True (default) waits for the task to finish, and returns
         (raises an exception if the task didn't succeed).
         If sync_run is set to False the task is started an a VITask instance is
         returned. You may additionally provided a managed object reference to a
-        host where the VM should be reverted at."""
+        host where the clone should be reverted at."""
 
         mor = None
         for snap in self._snapshot_list:
@@ -849,7 +849,7 @@ class VIVirtualMachine(VIManagedEntity):
     def create_snapshot(self, name, sync_run=True, description=None,
                         memory=True, quiesce=True):
         """
-        Takes a snapshot of this VM
+        Takes a snapshot of this clone
         @sync_run: if True (default) waits for the task to finish, and returns
             (raises an exception if the task didn't succeed). If False the task
             is started an a VITask instance is returned.
@@ -909,7 +909,7 @@ class VIVirtualMachine(VIManagedEntity):
                                                                        sync_run)
 
     def delete_named_snapshot(self, name, remove_children=False, sync_run=True):
-        """Removes the first snapshot found in this VM named after @name
+        """Removes the first snapshot found in this clone named after @name
         If @remove_children is True, removes all the snapshots in the subtree as
         well. If @sync_run is True (default) waits for the task to finish, and
         returns (raises an exception if the task didn't succeed). If sync_run is
@@ -929,7 +929,7 @@ class VIVirtualMachine(VIManagedEntity):
 
     def delete_snapshot_by_path(self, path, index=0, remove_children=False,
                                                                  sync_run=True):
-        """Removes the VM snapshot of the given path and index (to disambiguate
+        """Removes the clone snapshot of the given path and index (to disambiguate
         among snapshots with the same path, default 0). If @remove_children is
         True, removes all the snapshots in the subtree as well. If @sync_run is
         True (default) waits for the task to finish,and returns (raises an
@@ -950,7 +950,7 @@ class VIVirtualMachine(VIManagedEntity):
 
 
     def refresh_snapshot_list(self):
-        """Refreshes the internal list of snapshots of this VM"""
+        """Refreshes the internal list of snapshots of this clone"""
         self.__update_properties()
 
     #--------------------------#
@@ -1520,7 +1520,7 @@ class VIVirtualMachine(VIManagedEntity):
     #-------------------#
     
     def get_property(self, name='', from_cache=True):
-        """"Returns the VM property with the given @name or None if the property
+        """"Returns the clone property with the given @name or None if the property
         doesn't exist or have not been set. The property is looked in the cached
         info obtained from the last time the server was requested.
         If you expect to get a volatile property (that might have changed since
@@ -1542,7 +1542,7 @@ class VIVirtualMachine(VIManagedEntity):
         return self._properties.get(name)
 
     def get_properties(self, from_cache=True):
-        """Returns a dictionary of property of this VM.
+        """Returns a dictionary of property of this clone.
         If you expect to get a volatile property (that might have changed since
         the last time the properties were queried), you may set @from_cache to
         True to refresh all the properties before retrieve them."""
@@ -1552,7 +1552,7 @@ class VIVirtualMachine(VIManagedEntity):
 
 
     def get_resource_pool_name(self):
-        """Returns the name of the resource pool where this VM belongs to. Or
+        """Returns the name of the resource pool where this clone belongs to. Or
         None if there isn't any or it can't be retrieved"""
         if self._resource_pool:
             oc = self._server._get_object_properties(
@@ -1614,7 +1614,7 @@ class VIVirtualMachine(VIManagedEntity):
     #---------------------#
 
     def __create_snapshot_list(self):
-        """Creates a VISnapshot list with the snapshots this VM has. Stores that
+        """Creates a VISnapshot list with the snapshots this clone has. Stores that
         list in self._snapshot_list"""
 
         def create_list(snap_list=[], cur_node=None):
@@ -1647,7 +1647,7 @@ class VIVirtualMachine(VIManagedEntity):
 
     def __create_pendant_task_collector(self):
         """sets the MOR of a TaskHistoryCollector which will retrieve
-        the lasts task info related to this VM (or any suboject as snapshots)
+        the lasts task info related to this clone (or any suboject as snapshots)
         for those task in 'running' or 'queued' states"""
         try:
             mor_task_manager = self._server._do_service_content.TaskManager

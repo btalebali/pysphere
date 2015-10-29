@@ -145,3 +145,11 @@ print "  Capacity:", props.summary.capacity
 print "  Free space:", props.summary.freeSpace 
 server.disconnect() 
 
+
+
+
+
+
+
+
+

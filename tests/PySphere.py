@@ -15,6 +15,7 @@ from pysphere.vi_mor import VIMor
 from pysphere import  vi_task
 
 from pysphere.ZSI import fault
+from __builtin__ import filter
  
 
 
@@ -26,8 +27,8 @@ maxwait       =  120
 
 
 template="Ubuntu12.04-VMware-Tool-64bits";
-resource_pool="RP-Accords";
-vm_name=  "VM-test";
+resource_pool="/Resources/RP-accords";
+vm_name=  "addvolume-test0";
 
 
 con = VIServer()
@@ -78,7 +79,7 @@ def find_resource_pool(name):
         if re.match('.*%s' % name,path):
             return mor
     return None
-
+post_script="\n"
 def run_post_script(name,ip):
     print('Running post script: %s %s %s' % (post_script,name,ip))
     retcode = subprocess.call([post_script,name,ip])
@@ -99,7 +100,7 @@ def find_ip(vm,ipv6=False):
     if net_info:
         for ip in net_info[0]['ip_addresses']:
             if ipv6 and re.match('\d{1,4}\:.*',ip) and not re.match('fe83\:.*',ip):
-                print_verbose('IPv6 address found: %s' % ip)
+                print('IPv6 address found: %s' % ip)
                 return ip
             elif not ipv6 and re.match('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}',ip) and ip != '127.0.0.1':
                 print('IPv4 address found: %s' % ip)
@@ -114,7 +115,7 @@ def find_ip(vm,ipv6=False):
 
 
 
-###########################################Creating VM #######"
+###########################################Creating clone #######"
 
 
 ### finding template
@@ -145,27 +146,92 @@ print ('Resource pool %s found' % resource_pool)
 
 if (find_vm(vm_name)):
     print 'ERROR: %s already exists' % vm_name
+    sys.exit()
 else:
 #    clone = template_vm.clone(vm_name, sync_run=True, folder=None, resource_pool_mor, datastore="datastore-543", host="host-537",power_on=False, template=False)
 #    clone = template_vm.clone(vm_name, folder=None, resource_pool_mor, datastore="datastore-543", host="host-537",False, False)
     hosts="host-537"
     datastore="datastore-543"
+    print template_vm
     clone = template_vm.clone(vm_name, sync_run=True, folder=None, resourcepool=resource_pool_mor, 
-             datastore=datastore, host=hosts, power_on=False, template=False, 
-            snapshot=None, linked=False)
+                           datastore=datastore, host=hosts, power_on=False, template=False,snapshot=None, linked=False)
+
+    print('clone %s created' % vm_name)
+    print('Booting clone %s' % vm_name)
     
+
+clonepath=clone.get_properties()['path']
+
+
+
+### CREATE VOLUME and ATTACH to clone
+
+from pysphere import VIServer, VITask
+from pysphere.resources import VimService_services as VI
+
+DATASTORE_NAME = "disque250"
+DISK_SIZE_IN_GB = 10
+
+
+UNIT_NUMBER = 1
+
+request = VI.ReconfigVM_TaskRequestMsg()
+_this = request.new__this(clone._mor)
+_this.set_attribute_type(clone._mor.get_attribute_type())
+request.set_element__this(_this)
+
+spec = request.new_spec()
+#Setup operation
+dc = spec.new_deviceChange()
+dc.Operation = "add"
+dc.FileOperation = "create"
+
+
+hd = VI.ns0.VirtualDisk_Def("hd").pyclass()
+hd.Key = -100
+hd.set_element_unitNumber(UNIT_NUMBER)
+hd.CapacityInKB = DISK_SIZE_IN_GB * 1024 * 1024
+hd.ControllerKey = 1000
+
+
+backing = VI.ns0.VirtualDiskFlatVer2BackingInfo_Def("backing").pyclass()
+backing.FileName = "[%s]" % DATASTORE_NAME
+backing.DiskMode = "persistent"
+backing.Split = False
+backing.WriteThrough = False
+backing.ThinProvisioned = False
+backing.EagerlyScrub = False
+hd.Backing = backing
+
+dc.Device = hd
+spec.DeviceChange = [dc]
+request.Spec = spec
+task = con._proxy.ReconfigVM_Task(request)._returnval
+vi_task = VITask(task, con)
+
+#Wait for task to finis
+status = vi_task.wait_for_state([vi_task.STATE_SUCCESS,
+                                 vi_task.STATE_ERROR])
+if status == vi_task.STATE_ERROR:
+    print "ERROR CONFIGURING clone:", vi_task.get_error_message()
+else:
+    print "clone CONFIGURED SUCCESSFULLY"
     
-    
-    print('VM %s created' % vm_name)
-    print('Booting VM %s' % vm_name)
-    clone.power_on()
+
+
+
+###POWERING ON VM
+
+clone.power_on()
+
+#######
 
 
 
 
 
 
-
+sys.exit()
 
 
 
@@ -178,7 +244,7 @@ else:
 # retreiving ip
 
 
-VM = find_vm(vm_name)
+clone = find_vm(vm_name)
 
 #####ADD disque ##
 request = VI.ReconfigVM_TaskRequestMsg()
@@ -191,22 +257,22 @@ _this.set_attribute_type(vm._mor.get_attribute_type())
 start = time.clock()
 print("start time")
 
-if (VM):
+if (clone):
  publicip = find_ip(clone,ipv6=False)
-print("VM's public IP",publicip)
+print("clone's public IP",publicip)
 print("elapsed=")
 elapsed = time.clock()
 print(elapsed-start)
 
 # install COSACS for Windows
-VM.wait_for_tools(timeout=60)
-tmp1=VM.login_in_guest("root","prologue")
+clone.wait_for_tools(timeout=60)
+tmp1=clone.login_in_guest("root","prologue")
 
-#pid=VM.start_process("/usr/bin/wget", args=["http://109.234.64.71/accords-repository/Linux/install-cosacs-d-v1.sh"])
-#######################################VM custumisation #########################
+#pid=clone.start_process("/usr/bin/wget", args=["http://109.234.64.71/accords-repository/Linux/install-cosacs-d-v1.sh"])
+#######################################clone custumisation #########################
 ######Customize hostname and IP address
 
-vm_obj = VM
+vm_obj = clone
 
 request = VI.CustomizeVM_TaskRequestMsg()
 _this = request.new__this(vm_obj._mor)

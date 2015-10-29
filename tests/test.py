@@ -51,12 +51,12 @@ def find_ip(vm,ipv6=False):
     print_verbose('Timeout expired: No IP address found')
     return None
 
-parser = argparse.ArgumentParser(description="Deploy a template into multiple VM's")
+parser = argparse.ArgumentParser(description="Deploy a template into multiple clone's")
 parser.add_argument('-6', '--six', required=False, help='Get IPv6 address for VMs instead of IPv4', dest='ipv6', action='store_true')
 parser.add_argument('-b', '--basename', nargs=1, required=True, help='Basename of the newly deployed VMs', dest='basename', type=str)
-parser.add_argument('-c', '--count', nargs=1, required=False, help='Starting count, the name of the first VM deployed will be <basename>-<count>, the second will be <basename>-<count+1> (default=1)', dest='count', type=int, default=[1])
+parser.add_argument('-c', '--count', nargs=1, required=False, help='Starting count, the name of the first clone deployed will be <basename>-<count>, the second will be <basename>-<count+1> (default=1)', dest='count', type=int, default=[1])
 parser.add_argument('-n', '--number', nargs=1, required=False, help='Amount of VMs to deploy (default=1)', dest='amount', type=int, default=[1])
-parser.add_argument('-p', '--post-script', nargs=1, required=False, help='Script to be called after each VM is created and booted. Arguments passed: name ip-address', dest='post_script', type=str)
+parser.add_argument('-p', '--post-script', nargs=1, required=False, help='Script to be called after each clone is created and booted. Arguments passed: name ip-address', dest='post_script', type=str)
 parser.add_argument('-r', '--resource-pool', nargs=1, required=False, help='The resource pool in which the new VMs should reside', dest='resource_pool', type=str)
 parser.add_argument('-s', '--server', nargs=1, required=True, help='The vCenter or ESXi server to connect to', dest='server', type=str)
 parser.add_argument('-t', '--template', nargs=1, required=True, help='Template to deploy', dest='template', type=str)
@@ -109,20 +109,20 @@ if resource_pool_mor is None:
     sys.exit(1)
 print_verbose('Resource pool %s found' % resource_pool)
 
-# List with VM name elements for post script processing
+# List with clone name elements for post script processing
 vms_to_ps = []
 # Looping through amount that needs to be created
 for a in range(1,amount+1):
     print_verbose('================================================================================')
     vm_name = '%s-%i' % (basename,count)
-    print_verbose('Trying to clone %s to VM %s' % (template,vm_name))
+    print_verbose('Trying to clone %s to clone %s' % (template,vm_name))
     if find_vm(vm_name):
         print 'ERROR: %s already exists' % vm_name
     else:
         clone = template_vm.clone(vm_name, True, None, resource_pool_mor, None, None, False)
-        print_verbose('VM %s created' % vm_name)
+        print_verbose('clone %s created' % vm_name)
         
-        print_verbose('Booting VM %s' % vm_name)
+        print_verbose('Booting clone %s' % vm_name)
         clone.power_on()
         
         if post_script:
@@ -138,17 +138,17 @@ if post_script:
                 if ip:
                     run_post_script(name,ip)
                 else: 
-                    print 'ERROR: No IP found for VM %s, post processing disabled' % name
+                    print 'ERROR: No IP found for clone %s, post processing disabled' % name
             else:
-                print 'ERROR: VM %s not found, post processing disabled' % name
+                print 'ERROR: clone %s not found, post processing disabled' % name
 
 
 
-###### Stop VM
-vm = find_vm("Deployed-VM-1");
-#Finding VM's ip
+###### Stop clone
+vm = find_vm("Deployed-clone-1");
+#Finding clone's ip
 ip = find_ip(vm,ipv6)
-print ("VM's IP= ",ip)
+print ("clone's IP= ",ip)
 
 print("powering off VMs");
 vm.power_off();
