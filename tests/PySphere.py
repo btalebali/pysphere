@@ -173,7 +173,7 @@ DATASTORE_NAME = "disque250"
 DISK_SIZE_IN_GB = 10
 
 
-UNIT_NUMBER = 1
+UNIT_NUMBER = 01
 
 request = VI.ReconfigVM_TaskRequestMsg()
 _this = request.new__this(clone._mor)
@@ -226,13 +226,42 @@ clone.power_on()
 
 #######
 
+######DETACH VOLUM
 
+#refresh VM
+clone=con.get_vm_by_name('addvolume-test0')
+#find the device to be removed
+dev = [dev for dev in clone.properties.config.hardware.device 
+       if dev._type == "VirtualDisk" and dev.unitNumber == UNIT_NUMBER]
 
+if not dev:
+    raise Exception("NO DEVICE FOUND")
 
+dev = dev[0]._obj
 
+     
+request = VI.ReconfigVM_TaskRequestMsg()
+_this = request.new__this(clone._mor)
+_this.set_attribute_type(clone._mor.get_attribute_type())
+request.set_element__this(_this)
 
-sys.exit()
+spec = request.new_spec()
+dc = spec.new_deviceChange()
+dc.Operation = "remove"
+dc.Device = dev
 
+spec.DeviceChange = [dc]
+request.Spec = spec
+
+task = con._proxy.ReconfigVM_Task(request)._returnval
+vi_task = VITask(task, con)
+
+status = vi_task.wait_for_state([vi_task.STATE_SUCCESS, vi_task.STATE_ERROR])
+if status == vi_task.STATE_ERROR:
+    print "Error removing hdd from vm:", vi_task.get_error_message()
+    sys.exit(1)
+else:
+    print "Hard drive successfully removed"
 
 
 
