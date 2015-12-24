@@ -160,14 +160,32 @@ clonepath =clone.get_properties()['path']
 
 #########################################################################
 ###### CREATE and ATTACH DISK: Could be done whatever VM is on or off####
-###### action="volume" ##################################################
+###### action="volume" in uic    ########################################
 #########################################################################
+
+""" 
+#########INPUTS ############## 
+        :param vm_name: (str): 
+        :param vCenterServer: (str):
+        :param username: (str):
+        :param Password: (str):
+        :param DATASTORE_NAME: (str):
+        :param DISK_SIZE_IN_GB: (str):        
+        :param UNIT_NUMBER: (str):
+
+#########OUTPUTS ############## 
+        :param response: (str):
+        :param VMDKFILE:(str):
+"""
 
 
 DATASTORE_NAME = "Disque2Tera"
 DISK_SIZE_IN_GB = 1
-UNIT_NUMBER = 01
+UNIT_NUMBER = int("01")
 
+
+# Get VM
+clone=con.get_vm_by_name(vm_name)
 
 
 request = VI.ReconfigVM_TaskRequestMsg()
@@ -208,11 +226,11 @@ vi_task = VITask(task, con)
 status = vi_task.wait_for_state([vi_task.STATE_SUCCESS,
                                  vi_task.STATE_ERROR])
 if status == vi_task.STATE_ERROR:
-    print "ERROR CONFIGURING clone:", vi_task.get_error_message()
+    response = "ERROR CONFIGURING clone:"+ vi_task.get_error_message()
 else:
-    print "clone CONFIGURED SUCCESSFULLY"
-    DISC_FILE_NAME=hd.get_element_backing().get_element_fileName()
+    response =  "clone CONFIGURED SUCCESSFULLY"
 
+#GET VMDK file
 var = clone._disks
 g=len (var)
 if(g==1):
@@ -221,7 +239,7 @@ if(g==1):
 for i in range(1, g):
     if var[i]['device']['unitNumber']== UNIT_NUMBER:
         VMDKFILE    =var[i]['descriptor']
-        CapacityInKB =var[i]['capacity']
+
 
 
 
@@ -230,26 +248,27 @@ for i in range(1, g):
 ####### DETACH DISK: Could be done if disk is unmounted #################
 #########################################################################
 """
-        Detach a disk from VM .
-       
+
+#########INPUTS ############## 
         :param vm_name: (str): VM name
         :param vCenterServer: (str):
         :param username: (str):
         :param Password: (str):
         :param UNIT_NUMBER: (str):
+
+#########OUTPUTS ############## 
+        :param response:(str):
 """
 
-#For TEST
 
-
-UNIT_NUMBER=int("01")
-
-
+NIT_NUMBER=int("01")
 con = VIServer()
 con.connect(vCenterServer, username,Password,LOG_FILE)
 
+
 # Get VM
 clone=con.get_vm_by_name(vm_name)
+
 
 #find the device to be removed
 dev = [dev for dev in clone.properties.config.hardware.device 
@@ -281,7 +300,7 @@ status = vi_task.wait_for_state([vi_task.STATE_SUCCESS, vi_task.STATE_ERROR])
 if (status == vi_task.STATE_ERROR):
     raise Exception("Error detaching hdd from vm:"+ str(vi_task.get_error_message()))
 else:
-    print "Hard drive successfully detached"
+    response = "Hard drive successfully detached"
 
 
 
@@ -290,17 +309,19 @@ else:
 #########################################################################
 
     """
-        Attach existing disk to VM .
-       
+#########INPUTS ############## 
         :param vm_name: (str): VM name
         :param vCenterServer: (str):
         :param username: (str):
         :param Password: (str):
+        :param DISK_SIZE_IN_GB: (str):
         :param UNIT_NUMBER: (str):
         :param VMDK FILE: (str):
-        :param CapacityInKB: (str)
         :param mode:(str)   
-        
+
+#########OUTPUTS ##############
+
+        :param response:(str):        
         """
 
 
@@ -331,7 +352,7 @@ dc.Operation = "add"
 hd = VI.ns0.VirtualDisk_Def("hd").pyclass()
 hd.Key = -100
 hd.UnitNumber = UNIT_NUMBER
-hd.CapacityInKB = CapacityInKB
+hd.CapacityInKB = int(DISK_SIZE_IN_GB) * 1024 * 1024
 hd.ControllerKey = 1000
 
 
@@ -363,14 +384,14 @@ status = vi_task.wait_for_state([vi_task.STATE_SUCCESS,
 
 
 if status == vi_task.STATE_ERROR:
-    print "ERROR CONFIGURING VM:", vi_task.get_error_message()
+    response = "ERROR CONFIGURING VM:"+ vi_task.get_error_message()
 else:
-    print "VM CONFIGURED SUCCESSFULLY"
+    response = "VM CONFIGURED SUCCESSFULLY"
 
 
 
 #########################################################################
-####### DELETE DISK: Should be done if volume is detashed    ####
+####### DELETE DISK: Should be done if volume is detached    ############
 #########################################################################
     """
         delete detach disk from datastore
@@ -381,16 +402,19 @@ else:
         :param Password: (str):
         :param UNIT_NUMBER: (str):
         :param VMDK FILE: (str):
-        :param CapacityInKB: (str)
-        :param mode:(str)   
-        
+        :param DISK_SIZE_IN_GB: (str)
+        :param mode:(str)  
+         
+#########OUTPUTS ##############
+
+        :param response:(str):           
         """
 
 UNIT_NUMBER = int("02")
 VMDKFILE = '[Disque2Tera] vmforvolumetesting/vmforvolumetesting_1.vmdk'
-CapacityInKB= int("1048576")
-mode="persistent"
 
+mode="persistent"
+DISK_SIZE_IN_GB="1"
 
 con = VIServer()
 con.connect(vCenterServer, username,Password,LOG_FILE)
@@ -411,7 +435,7 @@ dc.FileOperation = "destroy"
 hd = VI.ns0.VirtualDisk_Def("hd").pyclass()
 hd.Key = -100
 hd.UnitNumber = UNIT_NUMBER
-hd.CapacityInKB = CapacityInKB
+hd.CapacityInKB = int(DISK_SIZE_IN_GB) * 1024 * 1024
 hd.ControllerKey = 1000
 
 
@@ -443,9 +467,9 @@ status = vi_task.wait_for_state([vi_task.STATE_SUCCESS,
 
 
 if status == vi_task.STATE_ERROR:
-    print "ERROR CONFIGURING VM:", vi_task.get_error_message()
+    response = "ERROR CONFIGURING VM:"+ vi_task.get_error_message()
 else:
-    print "VM CONFIGURED SUCCESSFULLY"
+    response = "VM CONFIGURED SUCCESSFULLY"
 
 
 
