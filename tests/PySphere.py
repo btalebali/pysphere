@@ -179,6 +179,8 @@ clonepath =clone.get_properties()['path']
 """
 
 
+
+
 DATASTORE_NAME = "Disque2Tera"
 DISK_SIZE_IN_GB = 1
 UNIT_NUMBER = int("01")
