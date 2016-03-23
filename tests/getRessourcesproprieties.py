@@ -7,9 +7,9 @@ from pysphere import VIServer, MORTypes
 from pysphere import  VIProperty, VITask,VIException, FaultTypes
 import sys
 
-vCenterServer = "172.17.117.104";
+vCenterserver = "172.17.117.104";
 username      = "administrateur"       #"administrateur"
-Password      = "Pr0l0gue2014"   #"Pr0l0gue2014";
+password      = "Pr0l0gue2014"   #"Pr0l0gue2014";
 LOG_FILE      = "/var/log/pysphere.log"
 
 
@@ -23,7 +23,7 @@ vm_name=  "VM2";
 
 Cluster="cluster103"
 con = VIServer()
-con.connect(vCenterServer, username,Password,LOG_FILE)
+con.connect(vCenterserver, username,password,LOG_FILE)
 MORefRPhost= [k for k,v in con.get_clusters().items() if v==Cluster][0]
 prop = VIProperty(con, MORefRPhost)
 print "*" * 50
@@ -46,7 +46,7 @@ con.disconnect()
 Host="172.17.117.103"
 
 con = VIServer()
-con.connect(vCenterServer, username,Password,LOG_FILE)
+con.connect(vCenterserver, username,password,LOG_FILE)
 MORefRPhost= [k for k,v in con.get_hosts().items() if v==Host][0]
 prop = VIProperty(con, MORefRPhost)
 print "*" * 50
@@ -64,7 +64,7 @@ con.disconnect()
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 s = VIServer()
-s.connect(vCenterServer, username,Password,LOG_FILE)
+s.connect(vCenterserver, username,password,LOG_FILE)
 MORefRP= [k for k,v in s.get_resource_pools().items() if v==resource_pool][0]
 properties=["summary.quickStats.overallCpuUsage" #Basic CPU performance statistics, in MHz.
             ,"summary.quickStats.overallCpuDemand" #Basic CPU performance statistics, in MHz.
@@ -101,7 +101,7 @@ for item in results:
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 s = VIServer()
-s.connect(vCenterServer, username,Password,LOG_FILE)
+s.connect(vCenterserver, username,password,LOG_FILE)
 vm=s.get_vm_by_name(vm_name)
 properties=["name"
             ,"summary.quickStats.balloonedMemory"
@@ -136,7 +136,7 @@ for item in results:
 
 datastore='Disque2Tera'
 server = VIServer() 
-server.connect(vCenterServer, username,Password,LOG_FILE) 
+server.connect(vCenterserver, username,password,LOG_FILE) 
 MORefdatastore= [k for k,v in server.get_datastores().items() if v==datastore][0]
 props = VIProperty(server, MORefdatastore) 
 print "DATASTORE:", datastore 

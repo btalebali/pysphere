@@ -6,9 +6,10 @@ from pyactions import *
 
 
 
-def add_port_group(name, vlan_id, vswitch, network_system,vCenterServer, username, Password):
+
+def add_port_group(name, vlan_id, vswitch, network_system,vCenterserver, username, password):
     s = VIServer()
-    s.connect(vCenterServer, username, Password)
+    s.connect(vCenterserver, username, password)
     request = VI.AddPortGroupRequestMsg()
     _this = request.new__this(network_system)
     _this.set_attribute_type(network_system.get_attribute_type())

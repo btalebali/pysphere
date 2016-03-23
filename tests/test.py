@@ -15,7 +15,7 @@ def find_vm(name):
     except VIException:
         return None
 
-def find_resource_pool(name):
+def get_RP_by_name(name):
     rps = con.get_resource_pools()
     for mor, path in rps.iteritems():
         print_verbose('Parsing RP %s' % path)
@@ -103,7 +103,7 @@ print_verbose('Template %s found' % template)
 
 # Verify the target Resource Pool exists
 print_verbose('Finding resource pool %s' % resource_pool)
-resource_pool_mor = find_resource_pool(resource_pool)
+resource_pool_mor = get_RP_by_name(resource_pool)
 if resource_pool_mor is None:
     print 'ERROR: %s not found' % resource_pool
     sys.exit(1)
