@@ -5,7 +5,7 @@ Created on 23 mars 2016
 '''
 
 # if __name__ == '__main__':
-# 	pass
+#   pass
 
 
 
@@ -399,5 +399,3 @@ if extra_config:
     vm.set_extra_config(extra_config)
 
 s.disconnect()
-
-

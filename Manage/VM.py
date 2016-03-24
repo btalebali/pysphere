@@ -84,12 +84,7 @@ def find_ip(vm, ipv6=False, maxwait=120):
 
 
 
-
-
-
-
-
-def get_dvSwitchs_by_DC(vCenterserver, username, password, datacentername):
+def get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
   dcprops = VIProperty(con, dcmor)
@@ -99,24 +94,49 @@ def get_dvSwitchs_by_DC(vCenterserver, username, password, datacentername):
   for dvswitch_mor in dvswitch_mors:
     respdict[dvswitch_mor.PropSet[0]._val] = dvswitch_mor.Obj
   return respdict
- 
 
 
 
-def  get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername,dvSwitchname):
+def get_portgroupname_by_ref(vCenterserver, username, password,datacentername, pgRef):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
   dcprops = VIProperty(con, dcmor)
   nfmor = dcprops.networkFolder._obj
-  dvswitch_mors = con._retrieve_properties_traversal(property_names=['name','key'],from_node=nfmor, obj_type = 'DistributedVirtualPortgroup')
-  respdict={}
-  for dvswitch_mor in dvswitch_mors:
-    respdict[dvswitch_mor.PropSet[1]._val] = dvswitch_mor.Obj
-  return respdict
- 
- 
+  portgroup_mors = con._retrieve_properties_traversal(property_names=['name','key'],from_node=nfmor, obj_type = 'DistributedVirtualPortgroup')
+  for portgroup_mor in portgroup_mors:
+    ref=portgroup_mor.get_element_propSet()[0].get_element_val()
+    if ref==pgRef:
+      return portgroup_mor.get_element_propSet()[1].get_element_val()
+  return None
 
-def  get_standardvS_by_DC(vCenterserver, username, password, datacentername):
+
+
+
+
+def  get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername, dvSwitchname):
+  con = vs_connect(vCenterserver, username, password)
+  dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
+  dcprops = VIProperty(con, dcmor)
+  nfmor = dcprops.networkFolder._obj
+  portgroup_mors = con._retrieve_properties_traversal(property_names=['name','portgroup'],from_node=nfmor, obj_type = 'VmwareDistributedVirtualSwitch')
+  RespDic={}
+  for portgroup_mor in portgroup_mors:
+    if (portgroup_mor.get_element_propSet()[0].get_element_val()==dvSwitchname):
+      pgRefs = portgroup_mor.get_element_propSet()[1].get_element_val().ManagedObjectReference
+  for pgRef in pgRefs:
+    portgroup_mors = con._retrieve_properties_traversal(property_names=['name','key'],from_node=nfmor, obj_type = 'DistributedVirtualPortgroup')
+    for portgroup_mor in portgroup_mors:
+      ref=portgroup_mor.get_element_propSet()[0].get_element_val()
+      if ref==pgRef:
+        name = portgroup_mor.get_element_propSet()[1].get_element_val()
+    RespDic[name]=pgRef
+  return RespDic
+
+
+
+
+
+def  get_standardvS_by_DCname(vCenterserver, username, password, datacentername):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
   dcprops = VIProperty(con, dcmor)
@@ -124,11 +144,11 @@ def  get_standardvS_by_DC(vCenterserver, username, password, datacentername):
   dvswitch_mors = con._retrieve_properties_traversal(property_names=['name'],from_node=nfmor, obj_type = 'Network')
   respdict={}
   for dvswitch_mor in dvswitch_mors:
-    respdict[dvswitch_mor.PropSet[0]._val] = dvswitch_mor.Obj
+    var=dvswitch_mor.get_element_obj().lower()
+    if 'network' in var :
+      respdict[dvswitch_mor.PropSet[0]._val] = dvswitch_mor.Obj
   return respdict
- 
- 
- 
+
 
 
 
@@ -164,8 +184,6 @@ def str_remove_specialchars( s ):
   response = resp
   response = response.replace(pypacksrc.dcvt_delimiter," ")
   return response
-
-
 
 
 

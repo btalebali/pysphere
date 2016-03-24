@@ -72,7 +72,7 @@ if __name__ == '__main__':
   
   print "test networks"
   
-  resp = get_dvSwitchs_by_DC(vCenterserver, username, password, datacentername)
+  resp = get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername)
   
 
   
@@ -83,7 +83,7 @@ if __name__ == '__main__':
   resp= get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername,dvSwitchname)
   
   
-  resp=get_standardvS_by_DC(vCenterserver, username, password, datacentername)
+  resp=get_standardvS_by_DCname(vCenterserver, username, password, datacentername)
     
   
   
