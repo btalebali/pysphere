@@ -30,7 +30,7 @@ def run_post_script(name,ip):
         print 'ERROR: %s %s %s : Returned a non-zero result' % (post_script,name,ip)
         sys.exit(1)
 
-def find_ip(vm,ipv6=False):
+def findip(vm,ipv6=False):
     net_info = None
     waitcount = 0
     while net_info is None:
@@ -134,7 +134,7 @@ if post_script:
     for name in vms_to_ps:
             vm = find_vm(name)
             if vm:
-                ip = find_ip(vm,ipv6)
+                ip = get_vm_ip_addresses(vm,ipv6)
                 if ip:
                     run_post_script(name,ip)
                 else: 
@@ -147,7 +147,7 @@ if post_script:
 ###### Stop clone
 vm = find_vm("Deployed-clone-1");
 #Finding clone's ip
-ip = find_ip(vm,ipv6)
+ip = get_vm_ip_addresses(vm,ipv6)
 print ("clone's IP= ",ip)
 
 print("powering off VMs");

@@ -39,7 +39,7 @@ class ThreadingTest(TestCase):
                 except:
                     self.passes = False
                     
-        hosts = self.server.get_hosts()
+        hostmor = self.server.get_hosts()
         rp = self.server.get_resource_pools()
         vms = self.server.get_registered_vms()
         vm = self.server.get_vm_by_path(vms[random.randint(0, len(vms)-1)])
@@ -48,7 +48,7 @@ class ThreadingTest(TestCase):
         
         threads.append(
             Thread(target=check_result, 
-                   args=(hosts, self.server.get_hosts, random.randint(8,15)))
+                   args=(hostmor, self.server.get_hosts, random.randint(8,15)))
         )
         threads.append(
             Thread(target=check_result, 

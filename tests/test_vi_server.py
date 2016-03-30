@@ -199,9 +199,9 @@ class VIServerTest(TestCase):
                 raise AssertionError("VM shouldn't be found")
                 
     def test_get_object_properties(self):
-        hosts = self.server.get_hosts()
+        hostmor = self.server.get_hosts()
         props = ['name', 'summary.config.vmotionEnabled']
-        for mor, name in hosts.items():
+        for mor, name in hostmor.items():
             prop = self.server._get_object_properties(mor, 
                                                           property_names=props)
             assert prop.Obj == mor
@@ -234,7 +234,7 @@ class VIServerTest(TestCase):
                     
     def test_get_object_properties_bulk(self):
         
-        hosts = self.server.get_hosts()
+        hostmor = self.server.get_hosts()
         datastores = self.server.get_datastores()
         oc = self.server._retrieve_properties_traversal(
                                                         property_names=['name'],
@@ -242,7 +242,7 @@ class VIServerTest(TestCase):
         random.shuffle(oc)
         vms = dict([(o.Obj, o.PropSet[0].Val) for o in oc[:10]])
         
-        all_mors = hosts.keys() + datastores.keys() + vms.keys()
+        all_mors = hostmor.keys() + datastores.keys() + vms.keys()
         found = []
         random.shuffle(all_mors)
         
@@ -286,7 +286,7 @@ class VIServerTest(TestCase):
                     else:
                         raise AssertionError("Unexpected property for Host: %s"
                                              % p.Name)
-                assert name == hosts[mor]
+                assert name == hostmor[mor]
                 assert vmotion in [True, False]
             else:
                 raise AssertionError("Unexpected mor type %s" 

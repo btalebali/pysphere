@@ -24,8 +24,8 @@ class VIPropertyTest(TestCase):
         cls.server.disconnect()
 
     def test_property_types(self):
-        hosts = self.server.get_hosts()
-        for hmor, hname in hosts.iteritems():
+        hostmor = self.server.get_hosts()
+        for hmor, hname in hostmor.iteritems():
             p = VIProperty(self.server, hmor)
             assert p.name == hname
             #string
