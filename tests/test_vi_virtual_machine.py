@@ -48,7 +48,7 @@ class VIVirtualMachineTest(TestCase):
 
     def test_get_resource_pool_name(self):
         for mor in self.server.get_resource_pools().iterkeys():
-            vms = self.server.get_registered_vms(resource_pool=mor)
+            vms = self.server.get_registered_vms(resource_pool_name=mor)
             if not vms:
                 continue
             path = random.choice(vms)

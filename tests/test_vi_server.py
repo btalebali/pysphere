@@ -76,7 +76,7 @@ class VIServerTest(TestCase):
         for rp_key, rp_path in resource_pools.items():
             if rp_path.count('/') == 1:
                 vms_by_root_rp.extend(self.server.get_registered_vms(
-                                                          resource_pool=rp_key))
+                                                          resource_pool_name=rp_key))
         oc = self.server._retrieve_properties_traversal(
                                              property_names=['config.template',
                                                      'config.files.vmPathName'],

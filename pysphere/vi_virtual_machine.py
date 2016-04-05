@@ -545,7 +545,7 @@ class VIVirtualMachine(VIManagedEntity):
     #-------------#
     #-- VMOTION --#
     #-------------#
-    def migrate(self, sync_run=True, priority='default', resource_pool=None,
+    def migrate(self, sync_run=True, priority='default', resource_pool_name=None,
                 host=None, state=None):
         """
         Cold or Hot migrates this clone to a new host or resource pool.
@@ -555,7 +555,7 @@ class VIVirtualMachine(VIManagedEntity):
         @priority: either 'default', 'high', or 'low': priority of the task that
             moves the vm. Note this priority can affect both the source and 
             target hosts.
-        @resource_pool: The target resource pool for the virtual machine. If the
+        @resource_pool_name: The target resource pool for the virtual machine. If the
             pool parameter is left unset, the virtual machine's current pool is
             used as the target pool.
         @host: The target host to which the virtual machine is intended to 
@@ -583,11 +583,11 @@ class VIVirtualMachine(VIManagedEntity):
             _this = request.new__this(self._mor)
             _this.set_attribute_type(self._mor.get_attribute_type())
             request.set_element__this(_this)
-            if resource_pool:
-                if not VIMor.is_mor(resource_pool):
-                    resource_pool = VIMor(resource_pool, MORTypes.ResourcePool)
-                pool = request.new_pool(resource_pool)
-                pool.set_attribute_type(resource_pool.get_attribute_type())
+            if resource_pool_name:
+                if not VIMor.is_mor(resource_pool_name):
+                    resource_pool_name = VIMor(resource_pool_name, MORTypes.ResourcePool)
+                pool = request.new_pool(resource_pool_name)
+                pool.set_attribute_type(resource_pool_name.get_attribute_type())
                 request.set_element_pool(pool)
             if host:
                 if not VIMor.is_mor(host):
@@ -617,7 +617,7 @@ class VIVirtualMachine(VIManagedEntity):
             raise VIApiException(e)
         
     def relocate(self, sync_run=True, priority='default', datastore=None, 
-                 resource_pool=None, host=None, transform=None, disks=None):
+                 resource_pool_name=None, host=None, transform=None, disks=None):
         """
         Cold or Hot relocates this virtual machine's virtual disks to a new 
         datastore.
@@ -629,7 +629,7 @@ class VIVirtualMachine(VIManagedEntity):
           hosts.
         @datastore: The target datastore to which the virtual machine's virtual
           disks are intended to migrate.
-        @resource_pool: The resource pool to which this virtual machine should 
+        @resource_pool_name: The resource pool to which this virtual machine should 
           be attached. If the argument is not supplied, the current resource 
           pool of virtual machine is used.
         @host: The target host for the virtual machine. If not specified,
@@ -666,12 +666,12 @@ class VIVirtualMachine(VIManagedEntity):
                     datastore = spec.new_datastore(ds)
                     datastore.set_attribute_type(ds.get_attribute_type())
                 spec.set_element_datastore(datastore)
-            if resource_pool:
-                if not VIMor.is_mor(resource_pool):
-                    rp = VIMor(resource_pool, MORTypes.ResourcePool)
-                    resource_pool = spec.new_pool(rp)
-                    resource_pool.set_attribute_type(rp.get_attribute_type())
-                spec.set_element_pool(resource_pool)
+            if resource_pool_name:
+                if not VIMor.is_mor(resource_pool_name):
+                    rp = VIMor(resource_pool_name, MORTypes.ResourcePool)
+                    resource_pool_name = spec.new_pool(rp)
+                    resource_pool_name.set_attribute_type(rp.get_attribute_type())
+                spec.set_element_pool(resource_pool_name)
             if host:
                 if not VIMor.is_mor(host):
                     h = VIMor(host, MORTypes.HostSystem)

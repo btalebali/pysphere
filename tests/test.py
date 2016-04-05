@@ -57,7 +57,7 @@ parser.add_argument('-b', '--basename', nargs=1, required=True, help='Basename o
 parser.add_argument('-c', '--count', nargs=1, required=False, help='Starting count, the name of the first clone deployed will be <basename>-<count>, the second will be <basename>-<count+1> (default=1)', dest='count', type=int, default=[1])
 parser.add_argument('-n', '--number', nargs=1, required=False, help='Amount of VMs to deploy (default=1)', dest='amount', type=int, default=[1])
 parser.add_argument('-p', '--post-script', nargs=1, required=False, help='Script to be called after each clone is created and booted. Arguments passed: name ip-address', dest='post_script', type=str)
-parser.add_argument('-r', '--resource-pool', nargs=1, required=False, help='The resource pool in which the new VMs should reside', dest='resource_pool', type=str)
+parser.add_argument('-r', '--resource-pool', nargs=1, required=False, help='The resource pool in which the new VMs should reside', dest='resource_pool_name', type=str)
 parser.add_argument('-s', '--server', nargs=1, required=True, help='The vCenter or ESXi server to connect to', dest='server', type=str)
 parser.add_argument('-t', '--template', nargs=1, required=True, help='Template to deploy', dest='template', type=str)
 parser.add_argument('-u', '--user', nargs=1, required=True, help='The username with which to connect to the server', dest='username', type=str)
@@ -73,9 +73,9 @@ count         = args.count[0]
 post_script     = None
 if args.post_script: 
     post_script = args.post_script[0]
-resource_pool     = None
+resource_pool_name     = None
 if args.resource_pool:
-    resource_pool = args.resource_pool[0]
+    resource_pool_name = args.resource_pool[0]
 server         = args.server[0]
 template     = args.template[0]
 username     = args.username[0]
@@ -102,12 +102,12 @@ if template_vm is None:
 print_verbose('Template %s found' % template)
 
 # Verify the target Resource Pool exists
-print_verbose('Finding resource pool %s' % resource_pool)
-resource_pool_mor = get_RP_by_name(resource_pool)
+print_verbose('Finding resource pool %s' % resource_pool_name)
+resource_pool_mor = get_RP_by_name(resource_pool_name)
 if resource_pool_mor is None:
-    print 'ERROR: %s not found' % resource_pool
+    print 'ERROR: %s not found' % resource_pool_name
     sys.exit(1)
-print_verbose('Resource pool %s found' % resource_pool)
+print_verbose('Resource pool %s found' % resource_pool_name)
 
 # List with clone name elements for post script processing
 vms_to_ps = []

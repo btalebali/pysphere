@@ -339,13 +339,13 @@ class VIServer:
         return self.__api_type
 
     def get_registered_vms(self, datacenter=None, cluster=None, 
-                           resource_pool=None, status=None,
+                           resource_pool_name=None, status=None,
                            advanced_filters=None):
         """Returns a list of VM Paths.
         @datacenter: name or MORs to filter VMs registered in that datacenter
         @cluster: name or MORs to filter VMs registered in that cluster. If set
             datacenter is ignored.
-        @resource_pool: name path or MORs to filter VMs registered in that
+        @resource_pool_name: name path or MORs to filter VMs registered in that
             resource pool. If set, both, @datacenter and @cluster are ignored.
         @status: either 'poweredOn', 'poweredOff', or 'suspended' to retrieve
             only VMs in that power state
@@ -371,11 +371,11 @@ class VIServer:
             #Root MOR filters
             ret = []
             nodes = [None]
-            if resource_pool and VIMor.is_mor(resource_pool):
-                nodes = [resource_pool]
-            elif resource_pool:
+            if resource_pool_name and VIMor.is_mor(resource_pool_name):
+                nodes = [resource_pool_name]
+            elif resource_pool_name:
                 nodes = [k for k,v in self.get_resource_pools().iteritems()
-                         if v==resource_pool]
+                         if v==resource_pool_name]
             elif cluster and VIMor.is_mor(cluster):
                 nodes = [cluster]
             elif cluster:

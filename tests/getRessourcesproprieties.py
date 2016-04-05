@@ -14,7 +14,7 @@ LOG_FILE      = "/var/log/pysphere.log"
 
 
 template="Ubuntu12.04-VMware-Tool-64bits"
-resource_pool="/Resources/testRessourcePool"
+resource_pool_name="/Resources/testRessourcePool"
 vm_name=  "VM2";
 
 
@@ -60,12 +60,12 @@ con.disconnect()
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-     Get All properties for a ressource pool : resource_pool
+     Get All properties for a ressource pool : resource_pool_name
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 s = VIServer()
 s.connect(vCenterserver, username,password,LOG_FILE)
-MORefRP= [k for k,v in s.get_resource_pools().items() if v==resource_pool][0]
+MORefRP= [k for k,v in s.get_resource_pools().items() if v==resource_pool_name][0]
 properties=["summary.quickStats.overallCpuUsage" #Basic CPU performance statistics, in MHz.
             ,"summary.quickStats.overallCpuDemand" #Basic CPU performance statistics, in MHz.
             ,"summary.quickStats.guestMemoryUsage"#Guest memory utilization statistics, in MB. This is also known as active guest memory. The number can be between 0 and the configured memory size of a virtual machine.
@@ -84,7 +84,7 @@ properties=["summary.quickStats.overallCpuUsage" #Basic CPU performance statisti
             ]
 results = s._retrieve_properties_traversal(property_names=properties,obj_type=MORTypes.ResourcePool)
 print "*" * 50
-print "Stats for RessourcePool", resource_pool
+print "Stats for RessourcePool", resource_pool_name
 for item in results:
     if(item.Obj==MORefRP):
         for p in item.PropSet:

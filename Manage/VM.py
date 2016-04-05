@@ -33,7 +33,7 @@ def vs_connect(host, user, password, unverify=True):
   con.connect(host, user,password,'/var/log/pysphere.log')
   return con
 
-
+ 
 
 def find_vm(vCenterserver, user, password, name):
   con = vs_connect(vCenterserver, user, password, unverify=True)
@@ -48,7 +48,6 @@ def get_RP_by_name(host, user, password, name):
   con = vs_connect(host, user, password, unverify=True)
   rps = con.get_resource_pools()
   for mor, path in rps.iteritems():
-      print('Parsing RP %s' % path)
       if re.match('.*%s' % name,path):
           return mor
   return None
@@ -98,7 +97,6 @@ def get_NIC_address_per_connected_net(vCenterserver, username, password,vm_name,
   return None
 
 
-
 def get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
@@ -122,8 +120,7 @@ def get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datace
     if dvswitch_mor.PropSet[0]._val == dvSname: 
       return dvswitch_mor.PropSet[1]._val
   return "Failure, dvswitch not found"
- 
- 
+
 
 
 def get_portgroupname_by_ref(vCenterserver, username, password,datacentername, pgRef):
@@ -154,7 +151,6 @@ def get_portgroupref_by_name(vCenterserver, username, password,datacentername, P
 
 
 
-
 def  get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername, dvSwitchname):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
@@ -176,7 +172,6 @@ def  get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacenter
 
 
 
-
 def  get_standardvS_by_DCname(vCenterserver, username, password, datacentername):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
@@ -189,7 +184,6 @@ def  get_standardvS_by_DCname(vCenterserver, username, password, datacentername)
     if 'network' in var :
       respdict[dvswitch_mor.PropSet[0]._val] = dvswitch_mor.Obj
   return respdict
-
 
 
 
@@ -215,7 +209,6 @@ def vs_find_datacenter_by_name(vCenterserver, user, password, name):
 
 
 
-
 def str_remove_specialchars( s ):
   resp = None
   if hasattr(s, 'status') and hasattr(s, 'message'):
@@ -225,7 +218,6 @@ def str_remove_specialchars( s ):
   response = resp
   response = response.replace(pypacksrc.dcvt_delimiter," ")
   return response
-
 
 
 def add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentername, vm,  dvswitch_uuid, portgroupKey, network_name="VM Network", nic_type="vmxnet3", network_type="standard"):
@@ -309,9 +301,6 @@ def add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentern
 
 
 
-
-
-
 def get_vm_nics(vCenterserver, username, password, datacentername, vm_name):
   " To reteive status VM should vm power on "
   
@@ -351,6 +340,7 @@ def get_vm_nics(vCenterserver, username, password, datacentername, vm_name):
       respdict[label]=["No connexion","no status"]
       
   return respdict
+
 
 
 def remove_nic_vm(vCenterserver, username, password, datacentername, vm_name, networklabel):
@@ -395,6 +385,7 @@ def remove_nic_vm(vCenterserver, username, password, datacentername, vm_name, ne
       return "failure reconfiguring vm_name: " + str(vm_obj, task.get_error_message())
   else:
     return " failure VM not found"
+
 
 
 
@@ -509,105 +500,6 @@ def disconnect_publicNIC_from_publicNet(vCenterserver, username, password, datac
   elif status == task.STATE_ERROR:
     return "failure reconfiguring vm_name: " + str(task.get_error_message())
 
-
-
-
-
-
-
-
-
-# 
-# 
-# def switch_to_new_portgroup(vCenterserver, username, password, datacentername, vm_name, PGname, dvSwitchname, netlabel):
-#   '''
-#   Switch existing NIC to a different network
-#   con: VIServer object
-#   datacentername: datacenter name
-#   vm_name: VIVirtualMachine name
-#   network_name: network name
-#   '''
-#   print "switch to new port group"
-#   con = vs_connect(vCenterserver, username, password)
-#   net_device = None
-#   vm_obj = con.get_vm_by_name(vm_name,datacenter=datacentername)
-#   if not vm_obj:
-#     raise Exception("VM %s not found" % vm_name)
-#   
-#   #Find nic device
-#   for dev in vm_obj.properties.config.hardware.device:
-#     if (dev._type in ["VirtualE1000", "VirtualE1000e","VirtualPCNet32", "VirtualVmxnet","VirtualNmxnet2", "VirtualVmxnet3"] 
-#     and hasattr(dev, "deviceInfo")
-#     and (dev.deviceInfo.label == netlabel)):
-#       net_device = dev._obj
-#   
-#   if not net_device:
-#     raise Exception("The vm_name seems to lack a Virtual Nic")
-# 
-# #   if hasattr(net_device.Backing,"DeviceName"):
-# #     #TODO convert device baching
-# #     return "failure on backing type .... "
-# 
-# #if hasattr(net_device.Backing, "port"):
-# 
-# #net_deviceback = net_device.Backing
-# 
-# 
-# 
-#   
-#   nic_backing_port = VI.ns0.DistributedVirtualSwitchPortConnection_Def("nic_backing_port").pyclass()
-#   dvswitch_uuid = get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datacentername, dvSwitchname)
-#   nic_backing_port.set_element_switchUuid(dvswitch_uuid)
-#   portgroupref = get_portgroupref_by_name(vCenterserver, username, password, datacentername, PGname)
-#   nic_backing_port.set_element_portgroupKey(portgroupref)
-#   
-#   
-#   
-#   
-#   # http://www.vmware.com/support/developer/vc-sdk/visdk400pubs/ReferenceGuide/vim.vm.device.VirtualEthernetCard.DistributedVirtualPortBackingInfo.html
-#   nic_backing = VI.ns0.VirtualEthernetCardDistributedVirtualPortBackingInfo_Def("nic_backing").pyclass()
-#   nic_backing.set_element_port(nic_backing_port)
-#   
-#   
-#   # 
-#   # request = VI.ReconfigVM_TaskRequestMsg()
-#   # _this = request.new__this(vm_obj._mor)
-#   # _this.set_attribute_type(vm_obj._mor.get_attribute_type())
-#   # request.set_element__this(_this)
-#   # spec = request.new_spec()
-#   # 
-#   # dev_change = spec.new_deviceChange()
-#   # dev_change.set_element_device(nic_backing)
-#   # dev_change.set_element_operation("edit")
-#   # spec.set_element_deviceChange([dev_change])
-#   # request.set_element_spec(spec)
-#   
-#   
-#   request = VI.ReconfigVM_TaskRequestMsg()
-#   _this = request.new__this(vm_obj._mor)
-#   _this.set_attribute_type(vm_obj._mor.get_attribute_type())
-#   request.set_element__this(_this)
-#   spec = request.new_spec()
-#   dev_change = spec.new_deviceChange()
-#   dev_change.set_element_device(nic_backing)
-#   dev_change.set_element_operation("edit")
-#   spec.set_element_deviceChange([dev_change])
-#   request.set_element_spec(spec)
-#     
-#   
-#   
-#   
-#   ret = con._proxy.ReconfigVM_Task(request)._returnval
-#   
-#     #Wait for the task to finish
-#   task = VITask(ret, con)
-#   
-#   status = task.wait_for_state([task.STATE_SUCCESS, task.STATE_ERROR])
-#   if status == task.STATE_SUCCESS:
-#     return "VM successfully reconfigured"
-#   elif status == task.STATE_ERROR:
-#     return "failure reconfiguring vm_name: " + str(task.get_error_message())
-#   
 
 
 
@@ -745,7 +637,6 @@ def poweroff_vm(vCenterserver, username, password,datacentername,vm_name):
   return "VM on uncorrect status:  "+ vmstatus
 
 
-
 def delete_vm(vCenterserver, username, password,datacentername,vm_name):
   con = vs_connect(vCenterserver, username, password)
   vm_obj = con.get_vm_by_name(vm_name,datacenter=datacentername)
@@ -754,4 +645,25 @@ def delete_vm(vCenterserver, username, password,datacentername,vm_name):
     vm_obj.destroy()
     return "VM successfully deleted"
   return "VM on uncorrect status:  "+ vmstatus
+ 
+def reboot_vm(vCenterserver, username, password,datacentername,vm_name):
+  con = vs_connect(vCenterserver, username, password)
+  vm_obj = con.get_vm_by_name(vm_name,datacenter=datacentername)
+  vmstatus=vm_obj.get_status()
+  if (vmstatus=='POWERED ON'):
+    vm_obj.reboot_guest()
+    return "VM successfully rebooted"
+  return "VM on uncorrect status:  "+ vmstatus
+
+
+def list_available_template(vCenterserver, username, password):
+  resp=[]
+  con = vs_connect(vCenterserver, username, password)
+  template_list = con.get_registered_vms(advanced_filters={'config.template':True})
+  for t in template_list:
+    vm = con.get_vm_by_path(t)
+    prop = vm.get_properties()
+    resp.append(prop['name'])
+  return resp
+
 
