@@ -656,6 +656,7 @@ def reboot_vm(vCenterserver, username, password,datacentername,vm_name):
   return "VM on uncorrect status:  "+ vmstatus
 
 
+
 def list_available_template(vCenterserver, username, password):
   resp=[]
   con = vs_connect(vCenterserver, username, password)
@@ -667,3 +668,74 @@ def list_available_template(vCenterserver, username, password):
   return resp
 
 
+
+
+def list_snapshotname_per_vm(vCenterserver, username, password,datacentername,vm_name):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name,datacenter=datacentername)
+  resp=[]
+  if vm:
+    snapshots = vm.get_snapshots()
+    for snapshot in snapshots:
+      name= snapshot.get_name()
+      resp.append(name)
+  return resp
+
+def list_snapshotpath_per_vm(vCenterserver, username, password,datacentername,vm_name):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name,datacenter=datacentername)
+  resp=[]
+  if vm:
+    snapshots = vm.get_snapshots()
+    for snapshot in snapshots:
+      path= snapshot.get_path()
+      resp.append(path)
+  return resp
+
+
+def createsnapshot_per_vm(vCenterserver, username, password,datacentername,vm_name,snapshotname):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name, datacenter=datacentername)
+  if vm:
+    r = vm.create_snapshot(name=snapshotname)
+  snapshots = list_snapshotname_per_vm(vCenterserver, username, password,datacentername,vm_name)
+  if(snapshotname in snapshots):
+    return "snapshot creation succeeded" 
+  return "Failure"
+
+
+
+def delete_snapshot_per_snapshotpath(vCenterserver, username, password, datacentername, vm_name, path):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name, datacenter = datacentername)
+  if vm:
+    r = vm.delete_snapshot_by_path(path = path)
+  paths = list_snapshotpath_per_vm(vCenterserver, username, password, datacentername, vm_name)
+  if(not(path in paths)):
+    return "snapshot deletion succeeded" 
+  return "Failure"
+
+
+def delete_snapshot_per_snapshotname(vCenterserver, username, password, datacentername, vm_name, name):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name, datacenter = datacentername)
+  if vm:
+    r = vm.delete_named_snapshot(name = name)
+  names = list_snapshotname_per_vm(vCenterserver, username, password, datacentername, vm_name)
+  if(not(name in names)):
+    return "snapshot deletion succeeded" 
+  return "Failure"
+
+
+revert_to_named_snapshot
+
+def revert_to_snapshot_per_snapshotname(vCenterserver, username, password, datacentername, vm_name, snapshotname):
+  con = vs_connect(vCenterserver, username, password)
+  vm = con.get_vm_by_name(vm_name, datacenter = datacentername)
+  if vm:
+    try:
+      r = vm.revert_to_named_snapshot(name = snapshotname)
+      return r
+    except VIException:
+      return "failure"
+  return "failure"

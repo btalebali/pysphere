@@ -10,7 +10,7 @@ def createVM(vm_name, VSSName, PGname):
   maxwait        =  120
   datacentername = 'vDC prologue'
   
-  template      =  "Ubuntu12.04 LTS 64bits  tools cloud init 2NICS"; #"UBUNTU1204-AMD-64BIT-VMware-tools-cloudinit" #
+  template      =  "Ubuntu12.04 LTS 64bits  tools cloud init 2NICS"; #"ubuntu-server-12.4-64lts" #
   resource_pool_name =  "/Resources/Tests" #/Resources/RP-accords"
   if not vm_name:
     vm_name       =  "VM02testvlan1";
@@ -82,18 +82,21 @@ def createVM(vm_name, VSSName, PGname):
   return [privateip,publicip]
   
 
-if __name__ == "__main__":
-  vm1 = createVM("VMpublicnet_vlan1103","Public Network portableIP","vlan1103")
-  vm2 = createVM("VMprivatenet_vlan1103","Private Network portable IP","vlan1103")
+#if __name__ == "__main__":
+#  vm1 = createVM("VMpublicnet_vlan1103","Public Network portableIP","vlan1103")
+#  vm2 = createVM("VMprivatenet_vlan1103","Private Network portable IP","vlan1103")
 
-  vm3 = createVM("VMpublicnet_vlan1104","Public Network portableIP","vlan1104")
-  vm4 = createVM("VMprivatenet_vlan1104","Private Network portable IP","vlan1104")
+#  vm3 = createVM("VMpublicnet_vlan1104","Public Network portableIP","vlan1104")
+#  vm4 = createVM("VMprivatenet_vlan1104","Private Network portable IP","vlan1104")
   
-  vm5 = createVM("VMpublicnet_vlan1105","Public Network portableIP","vlan1105")
-  vm6 = createVM("VMprivatenet_vlan1105","Private Network portable IP","vlan1105")
+#  vm5 = createVM("VMpublicnet_vlan1105","Public Network portableIP","vlan1105")
+#  vm6 = createVM("VMprivatenet_vlan1105","Private Network portable IP","vlan1105")
   
-  vm7 = createVM("VMpublicnet_vlan1106","Public Network portableIP","vlan1106")
-  vm8 = createVM("VMprivatenet_vlan1106","Private Network portable IP","vlan1106")
+#  vm7 = createVM("VMpublicnet_vlan1106","Public Network portableIP","vlan1106")
+#  vm8 = createVM("VMprivatenet_vlan1106","Private Network portable IP","vlan1106")
+
+
+
   
   
   
