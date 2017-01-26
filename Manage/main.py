@@ -1,106 +1,192 @@
 # Threading example
 from VM import *
 
-def createVM(vm_name, VSSName, PGname):
-
-  vCenterserver  =  "159.8.76.54";#"172.17.117.104"
-  username       =  "administrator@vsphere.local"  #"administrateur"
-  password       =  "Ebxjm8+v"   #"Pr0l0gue2014";
+def createVM(new_vm_name, VSSName, dvSwitchname, PGname, vm_or_modele_name, os_type, NIC1, NIC2 = None):
+  """
+  :param new_vm_name:
+  :param VSSName:
+  :param dvSwitchname:
+  :param PGname:
+  :param vm_or_modele_name:
+  :param os_type:
+  :param NIC1:
+  :param NIC2:  if None then private deployment
+  :return:
+  """
+  vCenterserver  =  "172.17.117.104"
+  username       =  "administrateur"
+  password       =  "Pr0l0gue2014";
   LOG_FILE       =  "/var/log/pysphere.log"
   maxwait        =  120
   datacentername = 'vDC prologue'
-  
-  template      =  "Ubuntu12.04 LTS 64bits  tools cloud init 2NICS"; #"ubuntu-server-12.4-64lts" #
-  resource_pool_name =  "/Resources/Tests" #/Resources/RP-accords"
-  if not vm_name:
-    vm_name       =  "VM02testvlan1";
-  con = vs_connect(vCenterserver, username, password,unverify=True)
-  
-  hostmor= "host-29"         #"host-537"#"host-29"
-  datastore= "datastore-30"  #"datastore-543" #"datastore-30"
-  
-  resp = list_available_template(vCenterserver, username, password)
-  template_vm = find_vm(vCenterserver, username, password, template)
+  hostmor= "host-537"
+  datastore= "datastore-543"
+  resource_pool_name =  "/Resources/RP-accords"
+  hostname='uicb'
+  adminpass='Pr0l0gue:2014'
+
+
+  con = vs_connect(vCenterserver, username, password, unverify=True)
+
+
+
+  template_vm = find_vm(vCenterserver, username, password, vm_or_modele_name)
+
+
+
   resource_pool_mor = get_RP_by_name(vCenterserver, username, password, resource_pool_name)
   
-  
-  clone = template_vm.clone(vm_name, sync_run=True, folder=None, resourcepool=resource_pool_mor,
-              datastore=datastore, host=hostmor, power_on=False, template=False,snapshot=None, linked=False)
-  ## For private NIC
+
+
+  VM = template_vm.clone(new_vm_name, sync_run=True, folder=None, resourcepool=resource_pool_mor, datastore=datastore, host=hostmor, power_on=False, template=False, snapshot=None, linked=False)
+
+
+  ## LIST DVSwitch for a Virtual DATAcenter
   resp = get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername)
-  dvSwitchname=resp.keys()[0]
+
+
+
+  ### LIST portgroup for a dvSwitch  and a datacenter
+  portgroups = get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername,dvSwitchname)
+
+
+  ## List Public Network
+  PubNets = get_standardvS_by_DCname(vCenterserver, username, password, datacentername)
+
+
+
   
-  resp= get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacentername,dvSwitchname)
-  if(not PGname):
-    PGname="vlan1"#resp.keys()[6]
-  
-  ## For public NIC
-  resp=get_standardvS_by_DCname(vCenterserver, username, password, datacentername)
-  if not VSSName:
-    VSSName="VM Network"  #resp.keys()[2]
-  
-  
-  print "Configure Network"
-  
-  #List Network configuration on Model
-  nicinfos = get_vm_nics(vCenterserver, username, password, datacentername, vm_name)
-  
-  #remove all network configuration in the template
+  ## List Network configuration on Model/ VM
+  nicinfos = get_vm_nics(vCenterserver, username, password, datacentername, new_vm_name)
+
+
+
+  ##Remove all NICs in the template
   for i in range(len(nicinfos.keys())):
-    resp = remove_nic_vm(vCenterserver, username, password, datacentername, vm_name, nicinfos.keys()[i])
-  
-  
-  ##Create private NIC and connect to specific vlan
-  
-  
-  dvswitch_uuid = get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datacentername, dvSwitchname)
-  portgroupKey  = get_portgroupref_by_name(vCenterserver, username, password, datacentername, PGname)
-  
-  resp = add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentername, vm_name,  dvswitch_uuid, portgroupKey, network_name="VM Network", nic_type="vmxnet3", network_type="dvs")
-  
-  ###update nic infos
-  nicinfos = get_vm_nics(vCenterserver, username, password, datacentername, vm_name)
-  
-  
-  
-  ### For public Deployment : 
-  ##add public NIC
-  resp = add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentername, vm_name,  dvswitch_uuid, portgroupKey, VSSName, nic_type="vmxnet3", network_type="standard")
-  
-  ## start VM then create second virtual NIC and get IP
-  result= poweron_vm(vCenterserver, username, password, datacentername, vm_name)
-  Netstatus = get_vm_ip_addresses(vCenterserver, username, password,vm_name, ipv6=False, maxwait=120)
-  
-  
-  privateip = get_NIC_address_per_connected_net(vCenterserver, username, password,vm_name, PGname, ipv6=False, maxwait=120)
-  publicip  = get_NIC_address_per_connected_net(vCenterserver, username, password,vm_name, VSSName, ipv6=False, maxwait=120)
-  
-  
-  print (vm_name)
-  print (privateip)
-  print (publicip)
-  return [privateip,publicip]
+    resp = remove_nic_vm(vCenterserver, username, password, datacentername, new_vm_name, nicinfos.keys()[i])
+
+
+    ###########################################
+    ### CONFIGURE PRIVATE NIC #################
+    ###########################################
+
+  if PGname and dvSwitchname:
+    # GET dvswitch uuid
+    dvswitch_uuid = get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datacentername, dvSwitchname)
+
+
+    # Get protgroup key
+    portgroupKey  = get_portgroupref_by_name(vCenterserver, username, password, datacentername, PGname)
+
+
+    resp = add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentername, new_vm_name, dvswitch_uuid, portgroupKey, nic_type="vmxnet3", network_type="dvs")
+
+
+    # refresh Nic infos
+    nicinfos = get_vm_nics(vCenterserver, username, password, datacentername, new_vm_name)
   
 
-#if __name__ == "__main__":
-#  vm1 = createVM("VMpublicnet_vlan1103","Public Network portableIP","vlan1103")
-#  vm2 = createVM("VMprivatenet_vlan1103","Private Network portable IP","vlan1103")
+  ###########################################
+  ### CONFIGURE Public NIC  #################
+  ###########################################
+  if VSSName:
+    # Add public NIC
+    resp = add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentername, new_vm_name,  dvswitch_uuid, portgroupKey, VSSName, nic_type="vmxnet3", network_type="standard")
 
-#  vm3 = createVM("VMpublicnet_vlan1104","Public Network portableIP","vlan1104")
-#  vm4 = createVM("VMprivatenet_vlan1104","Private Network portable IP","vlan1104")
-  
-#  vm5 = createVM("VMpublicnet_vlan1105","Public Network portableIP","vlan1105")
-#  vm6 = createVM("VMprivatenet_vlan1105","Private Network portable IP","vlan1105")
-  
-#  vm7 = createVM("VMpublicnet_vlan1106","Public Network portableIP","vlan1106")
-#  vm8 = createVM("VMprivatenet_vlan1106","Private Network portable IP","vlan1106")
+  #refresh VM
+  VM=con.get_vm_by_name(new_vm_name)
 
 
 
+  ## Customize VM ( ip, hostname,)
+
+
+
+  result = customizeNICS_settingIP_hostname_password(vCenterserver, username, password, VM._mor, NIC1, NIC2, hostname, adminpass,os_type)
+
+
+
+  # Start VM
+  result = poweron_vm(vCenterserver, username, password, datacentername, new_vm_name)
+
+
+
+  # Get IPs
+  if os_type=='WIN':
+    import time
+    time.sleep(200)
+  Netstatus = get_vm_ip_addresses(vCenterserver, username, password,new_vm_name, ipv6=False, maxwait=120)
+
+
+  print (new_vm_name)
+  if PGname:
+    privateip = get_NIC_address_per_connected_net(vCenterserver, username, password,new_vm_name, PGname, ipv6=False, maxwait=120)
+    print (privateip)
+  if VSSName:
+    publicip  = get_NIC_address_per_connected_net(vCenterserver, username, password,new_vm_name, VSSName, ipv6=False, maxwait=120)
+    print (publicip)
+
+  #refresh VM
+  VM=con.get_vm_by_name(new_vm_name)
+  return VM
+
+if __name__ == "__main__":
+  ### VM1    public linux
+  os_type='LINUX'
+  vm_or_modele_name = 'ubuntu-server-12.4-64lts'
+
+
+  dvSwitchname='DSwitchv1'
+  PGname='vlan4 static'
+  NIC1 = {'IP_SETTING': 'FIXED', 'ip_address': '10.2.3.3', 'netmask': '255.255.255.0', 'gateway': ''}
+
+
+  VSSName="VM Network"
+  NIC2 = {'IP_SETTING': 'DHCP'}
+
+  vm1_name = 'vm test 1'
+
+  vm1 = createVM(vm1_name, VSSName, dvSwitchname, PGname, vm_or_modele_name, os_type, NIC1, NIC2)
+
+
+
+  ### VM2    private deployment of VM1
+  os_type='LINUX'
+  vm_or_modele_name = 'vm test 1'
+
+
+  dvSwitchname='DSwitchv1'
+  PGname='vlan1 dhcp'
+  NIC1 = {'IP_SETTING': 'DHCP'}
+
+
+  VSSName = None
+  NIC2 = None
+
+  vm2_name = 'vm test 2'
+
+  vm2 = createVM(vm2_name, VSSName, dvSwitchname, PGname, vm_or_modele_name, os_type, NIC1, NIC2)
   
   
-  
-  
+
+
+
+  ###VM3  windows public deployment
+  os_type='WIN'
+  vm_or_modele_name = 'Windows 2012 R2 x86_64'
+
+
+  dvSwitchname='DSwitchv1'
+  PGname='vlan4 static'
+  NIC1 = {'IP_SETTING': 'FIXED', 'ip_address': '10.2.3.4', 'netmask': '255.255.255.0', 'gateway': ''}
+
+
+  VSSName="VM Network"
+  NIC2 = {'IP_SETTING': 'FIXED', 'ip_address': '172.17.117.137', 'netmask': '255.255.0.0', 'gateway': '172.17.0.254'}
+
+  vm3_name = 'vm test 3'
+
+  vm3 = createVM(vm3_name, VSSName, dvSwitchname, PGname, vm_or_modele_name, os_type, NIC1, NIC2)
   
   
   

@@ -1,32 +1,20 @@
-from urlparse import urlparse
 from time import sleep
-from pysphere import VIServer, MORTypes
-from pysphere import  VIProperty, VITask,VIException, FaultTypes
+from pysphere import VITask, FaultTypes
 from pysphere.vi_virtual_machine import VIVirtualMachine
-from pysphere.resources import VimService_services as VI
+from pysphere.resources.vi_exception import VIException, VIApiException
 from pysphere.vi_mor import VIMor
-from pysphere import  vi_task
-from pysphere.resources import VimService_services as VI
-from pysphere.ZSI import fault
-from __builtin__ import filter
-
+from pysphere.vi_task import VITask
 import ssl
-import json
 import pypacksrc
-import time
-import threading
-import os
-import urllib2
-import mmap
-import sys, re, getpass, argparse, subprocess
-from boto.dynamodb.condition import NULL
+import re, subprocess
+
 
 
 
 def vs_connect(host, user, password, unverify=True):
   if unverify:
     try:
-      ssl._create_default_https_context = ssl._DEFAULT_CIPHERS
+      ssl._create_default_https_context = ssl._create_unverified_context
     except:
       pass
   con = VIServer()
@@ -53,12 +41,14 @@ def get_RP_by_name(host, user, password, name):
   return None
 
 
-
 def run_post_script(name,ip, post_script):
   retcode = subprocess.call([post_script,name,ip])
   if retcode < 0:
       resp = 'ERROR: %s %s %s : Returned a non-zero result' % (post_script,name,ip)
       return resp
+
+
+
 
 def get_vm_ip_addresses(vCenterserver, username, password,vm_name, ipv6=False, maxwait=120):
   vm_obj = find_vm(vCenterserver, username, password, vm_name)
@@ -73,6 +63,8 @@ def get_vm_ip_addresses(vCenterserver, username, password,vm_name, ipv6=False, m
   if net_info:
     return net_info
   return None
+
+
 
 
 def get_NIC_address_per_connected_net(vCenterserver, username, password,vm_name, net_name, ipv6=False, maxwait=120):
@@ -97,6 +89,7 @@ def get_NIC_address_per_connected_net(vCenterserver, username, password,vm_name,
   return None
 
 
+
 def get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
@@ -107,6 +100,7 @@ def get_dvSwitchs_by_DCname(vCenterserver, username, password, datacentername):
   for dvswitch_mor in dvswitch_mors:
     respdict[dvswitch_mor.PropSet[0]._val] = dvswitch_mor.Obj
   return respdict
+
 
 
 def get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datacentername, dvSname):
@@ -120,6 +114,7 @@ def get_dvSwitchuuid_by_dvsname_and_DC(vCenterserver, username, password, datace
     if dvswitch_mor.PropSet[0]._val == dvSname: 
       return dvswitch_mor.PropSet[1]._val
   return "Failure, dvswitch not found"
+
 
 
 
@@ -137,6 +132,7 @@ def get_portgroupname_by_ref(vCenterserver, username, password,datacentername, p
 
 
 
+
 def get_portgroupref_by_name(vCenterserver, username, password,datacentername, PGname):
   con = vs_connect(vCenterserver, username, password)
   dcmor = [k for k,v in con.get_datacenters().items() if v==datacentername][0]
@@ -148,6 +144,7 @@ def get_portgroupref_by_name(vCenterserver, username, password,datacentername, P
       if name==PGname:
         return portgroup_mor.get_element_propSet()[0].get_element_val()
   return None
+
 
 
 
@@ -169,6 +166,41 @@ def  get_portgroup_by_dvSwitchname(vCenterserver, username, password, datacenter
         name = portgroup_mor.get_element_propSet()[1].get_element_val()
     RespDic[name]=pgRef
   return RespDic
+
+
+
+
+
+from pysphere import MORTypes
+from pysphere import VIServer, VIProperty
+from pysphere.resources import VimService_services as VI
+
+
+
+def create_portgroup_in_host(vCenterserver, username, password, host, pgname, vswitchname, vlan_id):
+  resp = "succeeded"
+  con = None
+  try:
+    con = vs_connect(vCenterserver, username, password)
+    hostmor = [k for k, v in con.get_hosts().items() if v == host][0]
+    prop = VIProperty(con, hostmor)
+    network_system = prop.configManager.networkSystem._obj
+    request = VI.AddPortGroupRequestMsg()
+    _this = request.new__this(network_system)
+    _this.set_attribute_type(network_system.get_attribute_type())
+    request.set_element__this(_this)
+    portgrp = request.new_portgrp()
+    portgrp.set_element_name(pgname)
+    portgrp.set_element_vlanId(int(vlan_id))
+    portgrp.set_element_vswitchName(vswitchname)
+    portgrp.set_element_policy(portgrp.new_policy())
+    request.set_element_portgrp(portgrp)
+    con._proxy.AddPortGroup(request)
+  except Exception, error:
+    resp = str_remove_specialchars(error)
+  if con:
+    con.disconnect()
+  return resp
 
 
 
@@ -296,6 +328,81 @@ def add_nic_vm_and_connect_to_net(vCenterserver, username, password, datacentern
       return "failure reconfiguring vm: " + str(task.get_error_message())
   else:
     return "failure reconfiguring vm network_name is mandatory"
+
+
+def disconnect_nic_from_network(vCenterserver, username, password, datacentername, vmname, dvswitch_uuid, portgroupKey, network_name="VM Network", nic_type="vmxnet3", network_type="standard"):
+
+  con = vs_connect(vCenterserver, username, password)
+  vm_obj = con.get_vm_by_name(vmname, datacenter=datacentername)
+
+  #Disconnect 3rd adaptar if its connected to network "VM Network"
+  #network_name = "VM Network"
+  device_name = "Network adapter 3"
+
+  #Find Virtual Nic device
+  net_device = None
+  for dev in vmname.properties.config.hardware.device:
+      if (dev._type in ["VirtualE1000", "VirtualE1000e","VirtualPCNet32", "VirtualVmxnet","VirtualNmxnet2", "VirtualVmxnet3"]
+      and dev.deviceInfo.label == network_name
+      and dev.deviceInfo.summary == device_name):
+          net_device = dev._obj
+          break
+
+  if not net_device:
+      s.disconnect()
+      raise Exception("The vm seems to lack a Virtual Nic")
+
+  #Disconnect the device
+  net_device.Connectable.Connected = True
+
+
+  #Invoke ReconfigVM_Task
+  request = VI.ReconfigVM_TaskRequestMsg()
+  _this = request.new__this(vmname._mor)
+  _this.set_attribute_type(vmname._mor.get_attribute_type())
+  request.set_element__this(_this)
+  spec = request.new_spec()
+  dev_change = spec.new_deviceChange()
+  dev_change.set_element_device(net_device)
+  dev_change.set_element_operation("edit")
+  spec.set_element_deviceChange([dev_change])
+  request.set_element_spec(spec)
+  ret = s._proxy.ReconfigVM_Task(request)._returnval
+
+  #Wait for the task to finish
+  task = VITask(ret, s)
+
+  status = task.wait_for_state([task.STATE_SUCCESS, task.STATE_ERROR])
+  if status == task.STATE_SUCCESS:
+      print "VM successfully reconfigured"
+  elif status == task.STATE_ERROR:
+      print "Error reconfiguring vm:", task.get_error_message()
+
+  s.disconnect()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -727,7 +834,7 @@ def delete_snapshot_per_snapshotname(vCenterserver, username, password, datacent
   return "Failure"
 
 
-revert_to_named_snapshot
+#revert_to_named_snapshot
 
 def revert_to_snapshot_per_snapshotname(vCenterserver, username, password, datacentername, vm_name, snapshotname):
   con = vs_connect(vCenterserver, username, password)
@@ -739,3 +846,100 @@ def revert_to_snapshot_per_snapshotname(vCenterserver, username, password, datac
     except VIException:
       return "failure"
   return "failure"
+
+
+
+def customizeNICS_settingIP_hostname_password(vCenterserver, username, password, vm_mor, NIC1,NIC2,hostname,adminpass ,os_type):
+  """
+  :param vCenterserver:
+  :param username:
+  :param password:
+  :param vm_mor:
+  :param NIC1:
+  :param NIC2:
+  :param os_type:
+  :param hostname:
+  :param adminpass:
+  :return:
+  """
+  con = vs_connect(vCenterserver, username, password, unverify=True)
+  request = VI.CustomizeVM_TaskRequestMsg()
+  _this = request.new__this(vm_mor)
+  _this.set_attribute_type(vm_mor.get_attribute_type())
+  request.set_element__this(_this)
+  spec = request.new_spec()
+  if os_type=="LINUX":
+    identity = VI.ns0.CustomizationLinuxPrep_Def("identity").pyclass()
+    identity.set_element_domain("domain name")
+    hostName = VI.ns0.CustomizationFixedName_Def("hostName").pyclass()
+    hostName.set_element_name(hostname)
+    identity.set_element_hostName(hostName)
+    spec.set_element_identity(identity)
+    request.set_element_spec(spec)
+    # TODO configure root password for linux os
+  if os_type == "WIN":
+    # customization = spec.new_customization()
+    # spec.set_element_customization(customization)
+    # globalIPSettings = customization.new_globalIPSettings()
+    # customization.set_element_globalIPSettings(globalIPSettings)
+    identity = VI.ns0.CustomizationSysprep_Def("identity").pyclass()
+    spec.set_element_identity(identity)
+    guiUnattended = identity.new_guiUnattended()
+    guiUnattended.set_element_autoLogon(True)
+    guiUnattended.set_element_autoLogonCount(1)
+    if adminpass:
+      passw = guiUnattended.new_password()
+      guiUnattended.set_element_password(passw)
+      passw.set_element_value(adminpass)
+      passw.set_element_plainText(True)
+  # http://msdn.microsoft.com/en-us/library/ms912391(v=winembedded.11).aspx
+    guiUnattended.set_element_timeZone(85) # GMT Standard Time
+    identity.set_element_guiUnattended(guiUnattended)
+    userData = identity.new_userData()
+    userData.set_element_fullName("PySphere")
+    userData.set_element_orgName("PySphere")
+    userData.set_element_productId("")
+    computerName = VI.ns0.CustomizationFixedName_Def(hostname).pyclass()
+    computerName.set_element_name(hostname.replace("_", ""))
+    userData.set_element_computerName( computerName )
+    identity.set_element_userData(userData)
+    identification = identity.new_identification()
+      # TODO JOIN DOAMIN
+    # identification.set_element_domainAdmin("MyDomainAdminUser")
+    # domainAdminPassword = identification.new_domainAdminPassword()
+    # domainAdminPassword.set_element_plainText(True)
+    # domainAdminPassword.set_element_value("MyDomainAdminPassword")
+    # identification.set_element_domainAdminPassword(domainAdminPassword)
+    # identification.set_element_joinDomain("MyDomain")
+    identity.set_element_identification(identification)
+  globalIPSettings = spec.new_globalIPSettings()
+  spec.set_element_globalIPSettings(globalIPSettings)
+  if NIC1 and NIC2:
+    nicSetting1 = spec.new_nicSettingMap()
+    nicSetting2 = spec.new_nicSettingMap()
+    spec.set_element_nicSettingMap([ getnicSetting(nicSetting1,NIC1), getnicSetting(nicSetting2,NIC2)])
+  elif  NIC1:
+    nicSetting1 = spec.new_nicSettingMap()
+    spec.set_element_nicSettingMap([getnicSetting(nicSetting1, NIC1), ])
+  request.set_element_spec(spec)
+  task = con._proxy.CustomizeVM_Task(request)._returnval
+  vi_task = VITask(task, con)
+  status = vi_task.wait_for_state([vi_task.STATE_SUCCESS, vi_task.STATE_ERROR])
+  return status
+
+
+
+def getnicSetting(nicSetting,NIC):
+  adapter = nicSetting.new_adapter()
+  if NIC['IP_SETTING'] == "FIXED":
+    fixedip = VI.ns0.CustomizationFixedIp_Def("ipAddress").pyclass()
+    fixedip.set_element_ipAddress(NIC['ip_address'])
+    adapter.set_element_ip(fixedip)
+    adapter.set_element_subnetMask(NIC['netmask'])
+    if NIC['gateway']:
+      adapter.set_element_gateway([NIC['gateway']])
+  if NIC['IP_SETTING']== "DHCP":
+    dhcpip = VI.ns0.CustomizationDhcpIpGenerator_Def("ipAddress").pyclass()
+    adapter.set_element_ip(dhcpip)
+  nicSetting.set_element_adapter(adapter)
+  return nicSetting
